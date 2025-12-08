@@ -1,0 +1,9 @@
+pydantic
+langgraph
+ipython
+ipykernel
+langchain-openai
+langchain-community
+langchain-anthropic
+dotenv
+langchain-ollama
