@@ -1,0 +1,6 @@
+Conversation log:
+Human: Hello
+AI: Hello! 👋 How can I help you today?
+Human: What can you tel me about langgraph tool, keep the answer in 2 lines
+AI: LangGraph is a library for building stateful, multi-actor applications with LLMs by orchestrating and coordinating language model calls with tools and external APIs. It enables the creation of agentic workflows with features like cycles, memory, and human-in-the-loop interactions through a graph-based computation model.
+End of conversation
