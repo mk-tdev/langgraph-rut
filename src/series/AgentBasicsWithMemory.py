@@ -67,13 +67,20 @@ def should_continue(state: MessagesState) -> str:
     return "tools"
   return END
 
-workflow = StateGraph(MessagesState)
-tool_node = ToolNode(tools)
-workflow.add_node("call_llm", call_llm)
-workflow.add_node("tools", tool_node)
+messages = [
+  HumanMessage(content="What is the weather in India today?")
+]
 
-workflow.add_edge(START, "call_llm")
-workflow.add_conditional_edges(
+
+## With Checkpointer
+
+workflow_with_memory = StateGraph(MessagesState)
+tool_node = ToolNode(tools)
+workflow_with_memory.add_node("call_llm", call_llm)
+workflow_with_memory.add_node("tools", tool_node)
+
+workflow_with_memory.add_edge(START, "call_llm")
+workflow_with_memory.add_conditional_edges(
   "call_llm",
   should_continue,
   {
@@ -81,19 +88,19 @@ workflow.add_conditional_edges(
     END: END,
   }
 )
-workflow.add_edge("tools", "call_llm")
+workflow_with_memory.add_edge("tools", "call_llm")
 
-app = workflow.compile()
-display(Image(app.get_graph().draw_mermaid_png()))
+app_with_memory = workflow_with_memory.compile(checkpointer=checkpointer)
+display(Image(app_with_memory.get_graph().draw_mermaid_png()))
+config = {"configurable": {"thread_id": "1"}}
 
-messages = [
-  HumanMessage(content="What is the weather in India today?")
-]
-
-result = app.invoke({"messages": messages})
+result = app_with_memory.invoke(
+  {"messages": [HumanMessage(content="What is the weather in India today?")]}, 
+  config=config
+)
 print([msg.pretty_print() for msg in result["messages"]])
 
-app.invoke({"messages": [
+result = app_with_memory.invoke({"messages": [
   HumanMessage("What would you recommend in there then?")
-]})
-
+]}, config=config)
+print([msg.pretty_print() for msg in result["messages"]])
