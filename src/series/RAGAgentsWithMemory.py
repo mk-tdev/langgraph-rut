@@ -34,6 +34,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
+
 # Initialize Ollama with the granite-embedding model
 embeddings = OllamaEmbeddings(model="granite-embedding:278m")
 
@@ -71,18 +72,28 @@ docs = [
 db = Chroma.from_documents(docs, embeddings)
 retriever = db.as_retriever(search_kwargs={"k": 4})
 
-prompt = hub.pull("rlm/rag-prompt")
+template = """
+  Answer the question based on only the following context and chat history. Especially take the latest question.
+
+  Chat History: {chat_history}
+  
+  Context: {context}
+  
+  Question: {question}
+  """
+prompt = ChatPromptTemplate.from_template(template=template)
+
 llm = ChatOllama(model="gpt-oss:120b-cloud")
-
-def format_docs(docs):
-  return "\n\n".join(doc.page_content for doc in docs)
-
 rag_chain = prompt | llm
 
 class AgentState(TypedDict):
   messages: list[BaseMessage]
   documents: list[Document]
   on_topic: str
+  rephrased_question: str
+  proceed_to_generate: bool
+  rephrase_count: int
+  question: HumanMessage
 
 class GradeQuestion(BaseModel):
   """
@@ -93,10 +104,48 @@ class GradeQuestion(BaseModel):
     description="Question is about restrauant? If yes -> 'Yes' if not -> 'No'"
   )
 
+def question_rewrite(state: AgentState):
+  print(f"Question rewrite: {state}")  
+
+  state["documents"] = []
+  state["on_topic"] = ""
+  state["rephrased_question"] = ""
+  state["proceed_to_generate"] = False
+  state["rephrase_count"] = 0
+
+  if "messages" not in state or state["messages"] is None:
+    state["messages"] = []
+
+  if state["question"] not in state["messages"]:
+    state["messages"].append(state["question"])
+
+  if len(state["messages"]) > 1:
+    converation = state["messages"][:-1]
+    current_question = state["question"].content
+
+    messages = [
+      SystemMessage(
+        content="You are a helpful assistant that repharases the user's question to be a standalone query."
+      )
+    ]
+
+    messages.extend(converation)
+    messages.append(HumanMessage(content=current_question))
+    rephrased_prompt = ChatPromptTemplate.from_messages(messages)
+    prompt = rephrased_prompt.format()
+    result = llm.invoke(prompt)
+    print(f"rephrased_question {result.content.strip()}")
+    state["rephrased_question"] = result.content.strip()
+  else:
+    print("rephrased_question {state['question'].content}")
+    state["rephrased_question"] = state["question"].content
+
+  return state
+
 def question_classifier(state: AgentState):
   question = state["messages"][-1].content
 
-  system = """
+  system_message = """
     You are a question classifier. Given a question, determine whether it is related to the one of the following topics:
 
     1. Information about Artic Vista (the restaurant)
@@ -111,155 +160,53 @@ def question_classifier(state: AgentState):
     - For off-topic: {{"score": "No"}}
   """
 
+  human_message = HumanMessage(content=f"User question: {state['rephrased_question']}")
+
   # Create a prompt that asks for a simple Yes/No response
   grade_prompt = ChatPromptTemplate.from_messages([
-      ("system", system),
-      ("human", "User question: {question}")
+    system_message,
+    human_message
   ])
   
+  structured_llm = llm.with_structured_output(GradeQuestion)
+
   # Chain the prompt with the LLM
-  chain = grade_prompt | llm
+  chain = grade_prompt | structured_llm
   
   # Get the response
-  response = chain.invoke({"question": question})
+  response = chain.invoke({})
   
-  # Parse the response to get a simple Yes/No
-  response_text = response.content.strip().lower()
-  is_on_topic = "yes" in response_text
+  state["on_topic"] = response.score.strip()
   
   print(f"Question: {question}")
-  print(f"Response: {response_text}")
-  print(f"Is on topic: {is_on_topic}")
+  print(f"Response: {response}")
+  print(f"Is on topic: {state['on_topic']}")
   
-  state["on_topic"] = "Yes" if is_on_topic else "No"
   return state
 
+
 def on_topic_router(state: AgentState):
-  on_topic = state["on_topic"]
+  on_topic = state.get("on_topic", "").strip().lower()
 
-  if on_topic.lower() == "yes":
-    return "on_topic"
+  if on_topic == "yes":
+    return "retrieve_documents"
   else:
-    return "off_topic"
+    return "off_topic_response"
 
+  
 def retrieve_documents(state: AgentState): 
   """
   Retrieve documents from the vector store based on the user's question
   """
-  question = state["messages"][-1].content
-  documents = retriever.invoke(question)
+  documents = retriever.invoke(state['rephrased_question'])
   state["documents"] = documents
   return state
 
-def generate_answer(state: AgentState):
+class GradeDocument(BaseModel):
   """
-  Generate an answer based on the retrieved documents
+  Boolean value to check whether a document is relevant to the question
   """
-  question = state["messages"][-1].content
-  documents = state["documents"]
-  context = format_docs(documents)
-  answer = rag_chain.invoke({"context": context, "question": question})
-  state["messages"].append(answer)
-  return state
 
-def off_topic_response(state: AgentState):
-  """
-  Respond to off-topic questions
-  """
-  state["messages"].append(
-    AIMessage(content="I'm sorry, I can only answer questions about Artic Vista (the restaurant).")
+  score: str = Field(
+    description="Document is relevant to the question? If yes -> 'Yes' if not -> 'No'"
   )
-  return state
-
-workflow = StateGraph(AgentState)
-
-workflow.add_node("topic_decision", question_classifier)
-workflow.add_node("off_topic_response", off_topic_response)
-workflow.add_node("retrieve_documents", retrieve_documents)
-workflow.add_node("generate_answer", generate_answer)
-
-workflow.add_conditional_edges(
-  "topic_decision",
-  on_topic_router,
-  {
-    "on_topic": "retrieve_documents",
-    "off_topic": "off_topic_response"
-  }
-)
-
-workflow.add_edge("retrieve_documents", "generate_answer")
-workflow.add_edge("generate_answer", END)
-workflow.add_edge("off_topic_response", END)
-workflow.set_entry_point("topic_decision")
-
-graph = workflow.compile()
-  
-display(Image(graph.get_graph().draw_mermaid_png()))
-config = {"configurable": {"thread_id": "1"}}
-
-result = graph.invoke(
-  input={"messages": [HumanMessage(content="What is the weather in India today?")]},
-  config=config
-)
-print(result)
-print(result["messages"][-1].content)
-
-relevant_result = graph.invoke(
-  input={"messages": [HumanMessage(content="What are the opening timings in Artic Vista?")]},
-  config=config
-)
-print(relevant_result)
-print(relevant_result["messages"][-1].content)
-
-
-## use tools
-
-retriever_tool = create_retriever_tool(
-  retriever,
-  "restaurant_info_retriever",
-  "Retrieve information about Artic Vista (the restaurant) including owner, location, and other details."
-)
-
-@tool
-def off_topic_response_tool():
-  """
-  Respond to off-topic questions
-  """
-  return "I'm sorry, I can only answer questions about Artic Vista (the restaurant)."
-
-tools = [retriever_tool, off_topic_response_tool]
-
-class AgentStateWithTools(TypedDict):
-  messages: Annotated[Sequence[BaseMessage], add_messages]
-
-def agent(state):
-  messages = state["messages"]
-  model = ChatOllama(model="gpt-oss:120b-cloud")
-  model_with_tools = model.bind_tools(tools)
-  return {"messages": [model_with_tools.invoke(messages)]}
-
-def should_continue(state: AgentStateWithTools) -> Literal["tools", END]:
-  messages = state["messages"]
-  last_message = messages[-1]
-  if last_message.tool_calls:
-    return "tools"
-  return END
-
-tools_workflow = StateGraph(AgentStateWithTools)
-tools_workflow.add_node("agent", agent)
-tools_workflow.add_node("tools", ToolNode(tools))
-tools_workflow.add_edge(START, "agent")
-tools_workflow.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
-tools_workflow.add_edge("tools", "agent")
-tools_graph = tools_workflow.compile()
-  
-display(Image(tools_graph.get_graph().draw_mermaid_png()))
-config = {"configurable": {"thread_id": "1"}}
-
-tools_graph.invoke(
-  input={"messages": [HumanMessage(content="How will the weather be tomorrow?")]}
-)
-
-tools_graph.invoke(
-  input={"messages": [HumanMessage(content="When will Artic Vista be open?")]}
-)
