@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 import pickle
 import hashlib
 from abc import ABC, abstractmethod
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -606,51 +607,57 @@ def demonstrate_custom_state_management():
         "history": []
     }
     
-    print("\n🚀 Running workflow with custom state management...")
+    config = {"configurable": {"thread_id": "custom-state-demo"}}
     
-    # Run the graph
-    result = graph.invoke(initial_state)
+    print("\n🚀 Running workflow with custom state management and visualization...")
     
-    print(f"\n📊 Workflow completed:")
-    print(f"- State ID: {result['state_id']}")
-    print(f"- Final Status: {result['status']}")
-    print(f"- Final Progress: {result['progress']}")
-    
-    # Demonstrate state manager features
-    print(f"\n🔍 State Manager Analysis:")
-    
-    # List all states
-    all_states = state_manager.list_states()
-    print(f"- Total states: {len(all_states)}")
-    print(f"- State IDs: {all_states}")
-    
-    # Get detailed state info
-    if all_states:
-        state_info = state_manager.get_state_info(all_states[0])
-        if state_info:
-            print(f"\n📋 State Details for {all_states[0]}:")
-            print(f"- Version: {state_info['metadata']['version']}")
-            print(f"- Size: {state_info['metadata']['size_bytes']} bytes")
-            print(f"- Access Count: {state_info['metadata']['access_count']}")
-            print(f"- Snapshots: {state_info['snapshot_count']}")
-    
-    # List snapshots
-    print(f"\n📸 Available Snapshots:")
-    for snapshot_id, snapshot in state_manager.snapshots.items():
-        print(f"- {snapshot_id}: {snapshot.timestamp} (version {snapshot.metadata.version})")
-    
-    # Demonstrate state restoration
-    if state_manager.snapshots:
-        first_snapshot_id = list(state_manager.snapshots.keys())[0]
-        print(f"\n🔄 Restoring from snapshot: {first_snapshot_id}")
+    # Use the context manager to run with visualization
+    with visualize(graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
         
-        restored_state_id = f"restored_{int(time.time())}"
-        success = state_manager.restore_snapshot(first_snapshot_id, restored_state_id)
+        # IMPORTANT: Use viz_app, not graph
+        result = viz_app.invoke(initial_state, config=config)
         
-        if success:
-            restored_info = state_manager.get_state_info(restored_state_id)
-            print(f"✅ Restored state: {restored_state_id}")
-            print(f"- Restored version: {restored_info['metadata']['version']}")
+        print(f"\n📊 Workflow completed:")
+        print(f"- State ID: {result['state_id']}")
+        print(f"- Final Status: {result['status']}")
+        print(f"- Final Progress: {result['progress']}")
+        
+        # Demonstrate state manager features
+        print(f"\n🔍 State Manager Analysis:")
+        
+        # List all states
+        all_states = state_manager.list_states()
+        print(f"- Total states: {len(all_states)}")
+        print(f"- State IDs: {all_states}")
+        
+        # Get detailed state info
+        if all_states:
+            state_info = state_manager.get_state_info(all_states[0])
+            if state_info:
+                print(f"\n📋 State Details for {all_states[0]}:")
+                print(f"- Version: {state_info['metadata']['version']}")
+                print(f"- Size: {state_info['metadata']['size_bytes']} bytes")
+                print(f"- Access Count: {state_info['metadata']['access_count']}")
+                print(f"- Snapshots: {state_info['snapshot_count']}")
+        
+        # List snapshots
+        print(f"\n📸 Available Snapshots:")
+        for snapshot_id, snapshot in state_manager.snapshots.items():
+            print(f"- {snapshot_id}: {snapshot.timestamp} (version {snapshot.metadata.version})")
+        
+        # Demonstrate state restoration
+        if state_manager.snapshots:
+            first_snapshot_id = list(state_manager.snapshots.keys())[0]
+            print(f"\n🔄 Restoring from snapshot: {first_snapshot_id}")
+            
+            restored_state_id = f"restored_{int(time.time())}"
+            success = state_manager.restore_snapshot(first_snapshot_id, restored_state_id)
+            
+            if success:
+                restored_info = state_manager.get_state_info(restored_state_id)
+                print(f"✅ Restored state: {restored_state_id}")
+                print(f"- Restored version: {restored_info['metadata']['version']}")
 
 def demonstrate_state_validation_and_transformation():
     """Demonstrate state validation and transformation"""
@@ -727,14 +734,134 @@ if __name__ == "__main__":
     print("CUSTOM STATE MANAGEMENT DEMONSTRATIONS")
     print("="*80)
     
-    # Demonstrate custom state management
-    demonstrate_custom_state_management()
+    print("\n🚀 Starting demonstrations with visualization...")
     
-    # Demonstrate validation and transformation
-    demonstrate_state_validation_and_transformation()
+    # Use the context manager to run with visualization
+    with visualize(custom_state_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # Demonstrate custom state management
+        print("\n--- CUSTOM STATE MANAGEMENT DEMONSTRATION ---")
+        
+        # Set up initial state
+        initial_state = {
+            "state_id": "demo_workflow_1",
+            "messages": [HumanMessage(content="Start custom state management demo")],
+            "current_step": "",
+            "status": "pending",
+            "progress": 0.0,
+            "metadata": {"demo": True},
+            "context": {},
+            "history": []
+        }
+        
+        config = {"configurable": {"thread_id": "custom-state-demo"}}
+        
+        print("🚀 Running workflow with custom state management...")
+        
+        # IMPORTANT: Use viz_app, not custom_state_graph
+        result = viz_app.invoke(initial_state, config=config)
+        
+        print(f"\n📊 Workflow completed:")
+        print(f"- State ID: {result['state_id']}")
+        print(f"- Final Status: {result['status']}")
+        print(f"- Final Progress: {result['progress']}")
+        
+        # Demonstrate state manager features
+        print(f"\n🔍 State Manager Analysis:")
+        
+        # List all states
+        all_states = state_manager.list_states()
+        print(f"- Total states: {len(all_states)}")
+        print(f"- State IDs: {all_states}")
+        
+        # Get detailed state info
+        if all_states:
+            state_info = state_manager.get_state_info(all_states[0])
+            if state_info:
+                print(f"\n📋 State Details for {all_states[0]}:")
+                print(f"- Version: {state_info['metadata']['version']}")
+                print(f"- Size: {state_info['metadata']['size_bytes']} bytes")
+                print(f"- Access Count: {state_info['metadata']['access_count']}")
+                print(f"- Snapshots: {state_info['snapshot_count']}")
+        
+        # List snapshots
+        print(f"\n📸 Available Snapshots:")
+        for snapshot_id, snapshot in state_manager.snapshots.items():
+            print(f"- {snapshot_id}: {snapshot.timestamp} (version {snapshot.metadata.version})")
+        
+        # Demonstrate state restoration
+        if state_manager.snapshots:
+            first_snapshot_id = list(state_manager.snapshots.keys())[0]
+            print(f"\n🔄 Restoring from snapshot: {first_snapshot_id}")
+            
+            restored_state_id = f"restored_{int(time.time())}"
+            success = state_manager.restore_snapshot(first_snapshot_id, restored_state_id)
+            
+            if success:
+                restored_info = state_manager.get_state_info(restored_state_id)
+                print(f"✅ Restored state: {restored_state_id}")
+                print(f"- Restored version: {restored_info['metadata']['version']}")
+        
+        # Demonstrate validation and transformation
+        print("\n--- STATE VALIDATION AND TRANSFORMATION DEMONSTRATION ---")
+        
+        # Test state validation
+        print(f"\n🔍 Testing State Validation:")
+        
+        valid_state = {
+            "messages": [HumanMessage(content="Valid message")],
+            "current_step": "test",
+            "status": "running"
+        }
+        
+        invalid_state = {
+            "messages": "not a list",
+            "current_step": "test",
+            "status": "invalid_status"
+        }
+        
+        validator = WorkflowStateValidator()
+        
+        print(f"- Valid state validation: {validator.validate(valid_state)}")
+        print(f"- Invalid state validation: {validator.validate(invalid_state)}")
+        
+        if not validator.validate(invalid_state):
+            errors = validator.get_validation_errors(invalid_state)
+            print(f"- Validation errors: {errors}")
+        
+        # Test state transformation
+        print(f"\n🔄 Testing State Transformation:")
+        
+        # Test message normalizer
+        normalizer = MessageNormalizer()
+        test_state = {
+            "messages": [
+                {"type": "human", "content": "Hello"},
+                {"type": "ai", "content": "Hi there!"}
+            ]
+        }
+        
+        normalized_state = normalizer.transform(test_state)
+        print(f"- Original messages: {len(test_state['messages'])} dict messages")
+        print(f"- Normalized messages: {len(normalized_state['messages'])} BaseMessage objects")
+        
+        # Test state compression
+        compressor = StateCompressor()
+        large_state = {
+            "large_list": list(range(200)),
+            "large_string": "x" * 1500,
+            "normal_data": "small"
+        }
+        
+        compressed_state = compressor.transform(large_state)
+        print(f"- Original list size: {len(large_state['large_list'])}")
+        print(f"- Compressed list size: {len(compressed_state['large_list'])}")
+        print(f"- Original string length: {len(large_state['large_string'])}")
+        print(f"- Compressed string length: {len(compressed_state['large_string'])}")
     
     print("\n" + "="*80)
-    print("ALL DEMONSTRATIONS COMPLETED")
+    print("ALL DEMONSTRATIONS COMPLETED - Visualization server closed")
     print("="*80)
     
     # Final summary

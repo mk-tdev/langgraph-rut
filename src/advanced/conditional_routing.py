@@ -19,6 +19,7 @@ from langgraph.graph.message import add_messages
 from IPython.display import Image, display
 from pydantic import BaseModel, Field
 import re
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -440,6 +441,10 @@ if __name__ == "__main__":
     except:
         print("Graph visualization not available")
     
+    print("\n" + "="*80)
+    print("ADVANCED CONDITIONAL ROUTING TESTS")
+    print("="*80)
+    
     # Test messages with different characteristics
     test_messages = [
         "URGENT! I need help with my database connection right now!",
@@ -452,23 +457,30 @@ if __name__ == "__main__":
         "I need comprehensive research on quantum computing applications in cryptography"
     ]
     
-    print("\n" + "="*80)
-    print("ADVANCED CONDITIONAL ROUTING TESTS")
-    print("="*80)
+    print("\n🚀 Starting tests with visualization...")
     
-    for i, message in enumerate(test_messages, 1):
-        print(f"\n--- Test {i} ---")
-        print(f"Input: {message}")
+    # Use the context manager to run with visualization
+    with visualize(advanced_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
         
-        initial_state = {
-            "messages": [HumanMessage(content=message)],
-            "routing_path": [],
-            "processing_stage": "initial"
-        }
-        
-        result = advanced_graph.invoke(initial_state)
-        
-        print(f"Routing Path: {' -> '.join(result['routing_path'])}")
-        print(f"Processing Stage: {result['processing_stage']}")
-        print(f"Response: {result['messages'][-1].content}")
-        print("-" * 60)
+        for i, message in enumerate(test_messages, 1):
+            print(f"\n--- Test {i} ---")
+            print(f"Input: {message}")
+            
+            initial_state = {
+                "messages": [HumanMessage(content=message)],
+                "routing_path": [],
+                "processing_stage": "initial"
+            }
+            
+            # IMPORTANT: Use viz_app, not advanced_graph
+            result = viz_app.invoke(initial_state)
+            
+            print(f"Routing Path: {' -> '.join(result['routing_path'])}")
+            print(f"Processing Stage: {result['processing_stage']}")
+            print(f"Response: {result['messages'][-1].content}")
+            print("-" * 60)
+    
+    print("\n" + "="*80)
+    print("TESTS COMPLETED - Visualization server closed")
+    print("="*80)

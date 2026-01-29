@@ -22,6 +22,7 @@ from IPython.display import Image, display
 from pydantic import BaseModel, Field
 import time
 import uuid
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -445,21 +446,29 @@ if __name__ == "__main__":
         "messages": [HumanMessage(content="Start the approval workflow")]
     }
     
-    print("\n🚀 Starting human-in-the-loop workflow...")
+    print("\n🚀 Starting human-in-the-loop workflow with visualization...")
     
-    # Run the workflow
-    result = human_loop_graph.invoke(initial_state, config=config)
+    # Use the context manager to run with visualization
+    with visualize(human_loop_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # IMPORTANT: Use viz_app, not human_loop_graph
+        result = viz_app.invoke(initial_state, config=config)
+        
+        print("\n" + "="*80)
+        print("WORKFLOW COMPLETED")
+        print("="*80)
+        
+        # Display final messages
+        for message in result["messages"]:
+            if isinstance(message, AIMessage):
+                print(f"\n{message.content}")
+        
+        print(f"\nFinal State:")
+        print(f"- Current Step: {result['current_step']}")
+        print(f"- Completed Interactions: {len(result['completed_interactions'])}")
+        print(f"- Workflow Steps: {len(result['workflow_steps'])}")
     
     print("\n" + "="*80)
-    print("WORKFLOW COMPLETED")
+    print("DEMONSTRATION COMPLETED - Visualization server closed")
     print("="*80)
-    
-    # Display final messages
-    for message in result["messages"]:
-        if isinstance(message, AIMessage):
-            print(f"\n{message.content}")
-    
-    print(f"\nFinal State:")
-    print(f"- Current Step: {result['current_step']}")
-    print(f"- Completed Interactions: {len(result['completed_interactions'])}")
-    print(f"- Workflow Steps: {len(result['workflow_steps'])}")

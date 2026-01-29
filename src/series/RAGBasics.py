@@ -83,4 +83,14 @@ qa_chain = (
   | StrOutputParser()
 )
 
-qa_chain.invoke("What are the opening hourse?")
+print("\n🚀 Running RAG Basics example with visualization...")
+
+# Use the context manager to run with visualization
+with visualize(qa_chain) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    # IMPORTANT: Use viz_app, not qa_chain
+    result = viz_app.invoke("What are the opening hourse?")
+    print(result)
+
+print("\n✅ RAG Basics demonstration completed - Visualization server closed")

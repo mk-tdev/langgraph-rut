@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 import traceback
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -840,17 +841,164 @@ if __name__ == "__main__":
     print("ADVANCED ERROR HANDLING AND RECOVERY DEMONSTRATIONS")
     print("="*80)
     
-    # Demonstrate error handling scenarios
-    demonstrate_error_handling_scenarios()
+    print("\n🚀 Starting demonstrations with visualization...")
     
-    # Demonstrate circuit breaker pattern
-    demonstrate_circuit_breaker_pattern()
-    
-    # Demonstrate graceful degradation
-    demonstrate_graceful_degradation()
+    # Use the context manager to run with visualization
+    with visualize(error_handling_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # Demonstrate error handling scenarios
+        print("\n--- ERROR HANDLING SCENARIOS DEMONSTRATION ---")
+        
+        # Test different scenarios
+        scenarios = [
+            {
+                "name": "Normal Operation",
+                "description": "All nodes work correctly",
+                "seed": 42  # Fixed seed for reproducible results
+            },
+            {
+                "name": "Random Failures",
+                "description": "Random failures in different nodes",
+                "seed": None  # Random seed
+            },
+            {
+                "name": "High Failure Rate",
+                "description": "Simulate high failure rate",
+                "seed": 123
+            }
+        ]
+        
+        for i, scenario in enumerate(scenarios, 1):
+            print(f"\n--- Scenario {i}: {scenario['name']} ---")
+            print(f"Description: {scenario['description']}")
+            
+            # Set random seed if specified
+            if scenario['seed'] is not None:
+                random.seed(scenario['seed'])
+            
+            # Set up initial state
+            initial_state = {
+                "messages": [HumanMessage(content=f"Start error handling scenario: {scenario['name']}")],
+                "current_node": "",
+                "errors": [],
+                "recovery_strategies": {},
+                "circuit_breakers": {},
+                "retry_configs": {},
+                "fallback_data": {},
+                "recovery_history": [],
+                "system_health": {},
+                "degradation_level": 0.0
+            }
+            
+            config = {"configurable": {"thread_id": f"error-scenario-{i}"}}
+            
+            # Run the scenario
+            print(f"🚀 Running scenario {i}...")
+            
+            # IMPORTANT: Use viz_app, not error_handling_graph
+            result = viz_app.invoke(initial_state, config=config)
+            
+            # Display results
+            print(f"📊 Scenario Results:")
+            print(f"- Total errors: {len(result['errors'])}")
+            print(f"- Recovery attempts: {len(result['recovery_history'])}")
+            print(f"- System degradation: {result['degradation_level']:.1f}")
+            print(f"- System health: {sum(1 for h in result['system_health'].values() if h)}/{len(result['system_health'])} nodes healthy")
+            
+            # Display error summary
+            if result['errors']:
+                error_types = {}
+                for error in result['errors']:
+                    error_types[error.error_type] = error_types.get(error.error_type, 0) + 1
+                print(f"- Error types: {error_types}")
+            
+            # Reset random seed
+            random.seed()
+        
+        # Demonstrate circuit breaker pattern
+        print("\n--- CIRCUIT BREAKER PATTERN DEMONSTRATION ---")
+        
+        # Create circuit breaker
+        circuit_breaker = CircuitBreakerState(
+            failure_threshold=3,
+            recovery_timeout=5.0  # Short timeout for demo
+        )
+        
+        circuit_state = {
+            "messages": [],
+            "current_node": "",
+            "errors": [],
+            "recovery_strategies": {},
+            "circuit_breakers": {"demo_service": circuit_breaker},
+            "retry_configs": {},
+            "fallback_data": {},
+            "recovery_history": [],
+            "system_health": {},
+            "degradation_level": 0.0
+        }
+        
+        print(f"🔄 Testing circuit breaker with failure threshold of {circuit_breaker.failure_threshold}")
+        
+        # Simulate multiple failures
+        for i in range(6):
+            print(f"\n--- Attempt {i + 1} ---")
+            
+            result = resilient_api_call(circuit_state, "demo_service", circuit_breaker=circuit_breaker)
+            
+            if result["success"]:
+                print(f"✅ Success: {result['data']}")
+            else:
+                print(f"❌ Failure: {result['error']}")
+            
+            print(f"Circuit breaker state: {circuit_breaker.state}")
+            print(f"Failure count: {circuit_breaker.failure_count}")
+            
+            # Wait for recovery timeout if circuit is open
+            if circuit_breaker.state == "OPEN":
+                print(f"⏳ Waiting {circuit_breaker.recovery_timeout}s for recovery timeout...")
+                time.sleep(circuit_breaker.recovery_timeout + 0.1)
+        
+        # Demonstrate graceful degradation
+        print("\n--- GRACEFUL DEGRADATION DEMONSTRATION ---")
+        
+        # Set up state with multiple failures
+        degradation_state = {
+            "messages": [HumanMessage(content="Test graceful degradation with multiple failures")],
+            "current_node": "",
+            "errors": [],
+            "recovery_strategies": {},
+            "circuit_breakers": {},
+            "retry_configs": {},
+            "fallback_data": {},
+            "recovery_history": [],
+            "system_health": {},
+            "degradation_level": 0.0
+        }
+        
+        # Force failures by setting random seed to ensure failures
+        random.seed(999)  # Seed that causes multiple failures
+        
+        degradation_config = {"configurable": {"thread_id": "graceful-degradation-demo"}}
+        
+        print(f"🔄 Running workflow with forced failures to test graceful degradation...")
+        
+        # IMPORTANT: Use viz_app, not error_handling_graph
+        degradation_result = viz_app.invoke(degradation_state, config=degradation_config)
+        
+        print(f"📊 Graceful Degradation Results:")
+        print(f"- Final degradation level: {degradation_result['degradation_level']:.1f}")
+        print(f"- Fallback strategies used: {list(degradation_result['fallback_data'].keys()) if degradation_result['fallback_data'] else 'None'}")
+        print(f"- Recovery history entries: {len(degradation_result['recovery_history'])}")
+        
+        # Display fallback details
+        if degradation_result['fallback_data']:
+            print(f"\n🔄 Fallback Details:")
+            for node, fallback_info in degradation_result['fallback_data'].items():
+                print(f"- {node}: {fallback_info}")
     
     print("\n" + "="*80)
-    print("ALL DEMONSTRATIONS COMPLETED")
+    print("ALL DEMONSTRATIONS COMPLETED - Visualization server closed")
     print("="*80)
     
     # Final summary

@@ -94,13 +94,23 @@ app_with_memory = workflow_with_memory.compile(checkpointer=checkpointer)
 display(Image(app_with_memory.get_graph().draw_mermaid_png()))
 config = {"configurable": {"thread_id": "1"}}
 
-result = app_with_memory.invoke(
-  {"messages": [HumanMessage(content="What is the weather in India today?")]}, 
-  config=config
-)
-print([msg.pretty_print() for msg in result["messages"]])
+print("\n🚀 Running Agent Basics with Memory and visualization...")
 
-result = app_with_memory.invoke({"messages": [
-  HumanMessage("What would you recommend in there then?")
-]}, config=config)
-print([msg.pretty_print() for msg in result["messages"]])
+# Use the context manager to run with visualization
+with visualize(app_with_memory) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    # IMPORTANT: Use viz_app, not app_with_memory
+    result = viz_app.invoke(
+      {"messages": [HumanMessage(content="What is the weather in India today?")]}, 
+      config=config
+    )
+    print([msg.pretty_print() for msg in result["messages"]])
+    
+    # IMPORTANT: Use viz_app, not app_with_memory
+    result = viz_app.invoke({"messages": [
+      HumanMessage("What would you recommend in there then?")
+    ]}, config=config)
+    print([msg.pretty_print() for msg in result["messages"]])
+
+print("\n✅ Agent Basics with Memory demonstration completed - Visualization server closed")

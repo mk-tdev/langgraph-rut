@@ -85,3 +85,15 @@ llm_ouput = llm_with_tools.invoke(messages)
 print(llm_ouput)
 messages.append(llm_ouput)
 
+print("\n🚀 Running With Tools example with visualization...")
+
+# Use the context manager to run with visualization
+with visualize(llm_with_tools) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    # IMPORTANT: Use viz_app, not llm_with_tools
+    viz_output = viz_app.invoke(messages)
+    print(viz_output)
+
+print("\n✅ With Tools demonstration completed - Visualization server closed")
+

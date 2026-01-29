@@ -256,10 +256,20 @@ tools_graph = tools_workflow.compile()
 display(Image(tools_graph.get_graph().draw_mermaid_png()))
 config = {"configurable": {"thread_id": "1"}}
 
-tools_graph.invoke(
-  input={"messages": [HumanMessage(content="How will the weather be tomorrow?")]}
-)
+print("\n🚀 Running RAG Agentic with Tools example with visualization...")
 
-tools_graph.invoke(
-  input={"messages": [HumanMessage(content="When will Artic Vista be open?")]}
-)
+# Use the context manager to run with visualization
+with visualize(tools_graph) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    # IMPORTANT: Use viz_app, not tools_graph
+    viz_app.invoke(
+      input={"messages": [HumanMessage(content="How will the weather be tomorrow?")]}
+    )
+
+    # IMPORTANT: Use viz_app, not tools_graph
+    viz_app.invoke(
+      input={"messages": [HumanMessage(content="When will Artic Vista be open?")]}
+    )
+
+print("\n✅ RAG Agentic with Tools demonstration completed - Visualization server closed")

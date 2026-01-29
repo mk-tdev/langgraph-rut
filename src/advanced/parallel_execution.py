@@ -21,6 +21,7 @@ from langgraph.graph.message import add_messages
 from IPython.display import Image, display
 from pydantic import BaseModel, Field
 import random
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -377,28 +378,35 @@ if __name__ == "__main__":
     print("PARALLEL EXECUTION TESTS")
     print("="*80)
     
-    for i, scenario in enumerate(test_scenarios, 1):
-        print(f"\n--- Test {i}: {scenario['mode'].upper()} ---")
-        print(f"Input: {scenario['message']}")
+    print("\n🚀 Starting parallel execution tests with visualization...")
+    
+    # Use the context manager to run with visualization
+    with visualize(parallel_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
         
-        start_time = time.time()
-        
-        initial_state = {
-            "messages": [HumanMessage(content=scenario['message'])],
-            "parallel_mode": scenario['mode']
-        }
-        
-        result = parallel_graph.invoke(initial_state)
-        
-        end_time = time.time()
-        total_time = end_time - start_time
-        
-        print(f"Total Execution Time: {total_time:.2f}s")
-        print(f"Final Response: {result['messages'][-1].content}")
-        
-        if i < len(test_scenarios):
-            print("\n" + "="*60)
+        for i, scenario in enumerate(test_scenarios, 1):
+            print(f"\n--- Test {i}: {scenario['mode'].upper()} ---")
+            print(f"Input: {scenario['message']}")
+            
+            start_time = time.time()
+            
+            initial_state = {
+                "messages": [HumanMessage(content=scenario['message'])],
+                "parallel_mode": scenario['mode']
+            }
+            
+            # IMPORTANT: Use viz_app, not parallel_graph
+            result = viz_app.invoke(initial_state)
+            
+            end_time = time.time()
+            total_time = end_time - start_time
+            
+            print(f"Total Execution Time: {total_time:.2f}s")
+            print(f"Final Response: {result['messages'][-1].content}")
+            
+            if i < len(test_scenarios):
+                print("\n" + "="*60)
     
     print("\n" + "="*80)
-    print("PARALLEL EXECUTION COMPLETED")
+    print("PARALLEL EXECUTION COMPLETED - Visualization server closed")
     print("="*80)

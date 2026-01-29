@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 import threading
 import queue
 from datetime import datetime
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -648,14 +649,87 @@ if __name__ == "__main__":
     print("STREAMING AND CHECKPOINTING DEMONSTRATIONS")
     print("="*80)
     
-    # Demonstrate streaming output
-    demonstrate_streaming_output()
+    print("\n🚀 Starting demonstrations with visualization...")
     
-    # Demonstrate checkpoint recovery
-    demonstrate_checkpoint_recovery()
+    # Use the context manager to run with visualization
+    with visualize(streaming_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # Demonstrate streaming output
+        print("\n--- REAL-TIME STREAMING DEMONSTRATION ---")
+        
+        # Set up initial state
+        initial_state = {
+            "messages": [HumanMessage(content="Process data with real-time streaming")],
+            "current_node": "",
+            "processing_steps": [],
+            "stream_events": [],
+            "checkpoints": [],
+            "progress": 0.0,
+            "error_history": [],
+            "recovery_attempts": 0,
+            "streaming_enabled": True,
+            "checkpoint_frequency": 2
+        }
+        
+        config = {"configurable": {"thread_id": "streaming-demo"}}
+        
+        print("🚀 Starting streaming execution...")
+        
+        # IMPORTANT: Use viz_app, not streaming_graph
+        result = viz_app.invoke(initial_state, config=config)
+        
+        print(f"✅ Streaming completed with {len(result['stream_events'])} events")
+        
+        # Demonstrate checkpoint recovery
+        print("\n--- CHECKPOINT RECOVERY DEMONSTRATION ---")
+        
+        # Simulate error during analysis
+        recovery_state = initial_state.copy()
+        recovery_state['_simulate_error'] = True
+        
+        print("🚀 Starting execution with simulated error...")
+        
+        try:
+            # IMPORTANT: Use viz_app, not streaming_graph
+            recovery_result = viz_app.invoke(recovery_state, config=config)
+        except Exception as e:
+            print(f"❌ Execution interrupted: {e}")
+        
+        # List available checkpoints
+        checkpoints = stream_manager.list_checkpoints()
+        print(f"\n📋 Available checkpoints: {len(checkpoints)}")
+        for cp in checkpoints:
+            print(f"  - {cp.checkpoint_id}: {cp.checkpoint_type.value} at {cp.metadata.get('progress', 0)*100:.1f}% progress")
+        
+        # Find the best checkpoint to restore from
+        if checkpoints:
+            best_checkpoint = max(checkpoints, key=lambda cp: cp.metadata.get('progress', 0))
+            print(f"\n🔄 Restoring from checkpoint: {best_checkpoint.checkpoint_id}")
+            
+            # Restore state from checkpoint
+            restored_state = stream_manager.restore_from_checkpoint(best_checkpoint.checkpoint_id)
+            
+            if restored_state:
+                # Remove error simulation for recovery
+                restored_state['_simulate_error'] = False
+                restored_state['recovery_attempts'] += 1
+                
+                print(f"✅ State restored. Progress: {restored_state['progress']*100:.1f}%")
+                print(f"📈 Recovery attempt #{restored_state['recovery_attempts']}")
+                
+                # Continue execution from restored state
+                print("\n🚀 Continuing execution from restored state...")
+                
+                try:
+                    # IMPORTANT: Use viz_app, not streaming_graph
+                    final_result = viz_app.invoke(restored_state, config=config)
+                    print(f"✅ Recovery successful! Final progress: {final_result['progress']*100:.1f}%")
+                except Exception as e:
+                    print(f"❌ Recovery failed: {e}")
     
     print("\n" + "="*80)
-    print("DEMONSTRATIONS COMPLETED")
+    print("DEMONSTRATIONS COMPLETED - Visualization server closed")
     print("="*80)
     
     # Final checkpoint summary

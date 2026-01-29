@@ -21,6 +21,7 @@ from langgraph.graph.message import add_messages
 from IPython.display import Image, display
 from pydantic import BaseModel, Field
 import uuid
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -355,45 +356,49 @@ def demonstrate_dynamic_modification():
     
     config = {"configurable": {"thread_id": "dynamic-modification-demo"}}
     
-    print("\n🚀 Running initial graph...")
+    print("\n🚀 Running initial graph with visualization...")
     
-    # Run initial graph
-    result1 = initial_graph.invoke(initial_state, config=config)
-    
-    print(f"\n📊 Initial execution completed:")
-    print(f"- Active nodes: {result1['active_nodes']}")
-    print(f"- Modification history: {len(result1['modification_history'])} modifications")
-    print(f"- Adaptation triggers: {result1['adaptation_triggers']}")
-    
-    # Display modifications
-    if result1["modification_history"]:
-        print(f"\n🔧 Modifications applied:")
-        for mod in result1["modification_history"]:
-            print(f"  - {mod.modification_type.value}: {mod.target_node} ({mod.reason})")
-    
-    # Create modified graph
-    print(f"\n🔄 Creating modified graph based on adaptations...")
-    
-    modified_graph, new_active_nodes = create_modified_graph(result1["modification_history"])
-    
-    # Update state with new graph structure
-    modified_state = result1.copy()
-    modified_state["active_nodes"] = new_active_nodes
-    modified_state["current_graph"] = {
-        "version": "2.0",
-        "nodes": len(new_active_nodes),
-        "edges": len(new_active_nodes) + 1  # Approximate
-    }
-    
-    print(f"\n🚀 Running modified graph...")
-    
-    # Run modified graph
-    result2 = modified_graph.invoke(modified_state, config=config)
-    
-    print(f"\n📊 Modified execution completed:")
-    print(f"- Active nodes: {result2['active_nodes']}")
-    print(f"- Total modifications: {len(result2['modification_history'])}")
-    print(f"- Performance metrics: {result2['performance_metrics']}")
+    # Use the context manager to run with visualization
+    with visualize(initial_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # IMPORTANT: Use viz_app, not initial_graph
+        result1 = viz_app.invoke(initial_state, config=config)
+        
+        print(f"\n📊 Initial execution completed:")
+        print(f"- Active nodes: {result1['active_nodes']}")
+        print(f"- Modification history: {len(result1['modification_history'])} modifications")
+        print(f"- Adaptation triggers: {result1['adaptation_triggers']}")
+        
+        # Display modifications
+        if result1["modification_history"]:
+            print(f"\n🔧 Modifications applied:")
+            for mod in result1["modification_history"]:
+                print(f"  - {mod.modification_type.value}: {mod.target_node} ({mod.reason})")
+        
+        # Create modified graph
+        print(f"\n🔄 Creating modified graph based on adaptations...")
+        
+        modified_graph, new_active_nodes = create_modified_graph(result1["modification_history"])
+        
+        # Update state with new graph structure
+        modified_state = result1.copy()
+        modified_state["active_nodes"] = new_active_nodes
+        modified_state["current_graph"] = {
+            "version": "2.0",
+            "nodes": len(new_active_nodes),
+            "edges": len(new_active_nodes) + 1  # Approximate
+        }
+        
+        print(f"\n🚀 Running modified graph...")
+        
+        # IMPORTANT: Use viz_app, not modified_graph
+        result2 = viz_app.invoke(modified_state, config=config)
+        
+        print(f"\n📊 Modified execution completed:")
+        print(f"- Active nodes: {result2['active_nodes']}")
+        print(f"- Total modifications: {len(result2['modification_history'])}")
+        print(f"- Performance metrics: {result2['performance_metrics']}")
 
 def demonstrate_adaptive_evolution():
     """Demonstrate adaptive graph evolution over multiple iterations"""
@@ -540,17 +545,163 @@ if __name__ == "__main__":
     print("DYNAMIC GRAPH MODIFICATION DEMONSTRATIONS")
     print("="*80)
     
-    # Demonstrate basic dynamic modification
-    demonstrate_dynamic_modification()
+    print("\n🚀 Starting demonstrations with visualization...")
     
-    # Demonstrate adaptive evolution
-    demonstrate_adaptive_evolution()
-    
-    # Demonstrate runtime reconfiguration
-    demonstrate_runtime_reconfiguration()
+    # Use the context manager to run with visualization
+    with visualize(dynamic_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # Demonstrate basic dynamic modification
+        print("\n--- DYNAMIC MODIFICATION DEMONSTRATION ---")
+        
+        # Set up initial state
+        initial_state = {
+            "messages": [HumanMessage(content="Start dynamic graph modification demo")],
+            "current_graph": {"version": "1.0", "nodes": 3, "edges": 3},
+            "active_nodes": ["dynamic_processor", "adaptive_router", "graph_modifier"],
+            "active_edges": [
+                {"source": "START", "target": "dynamic_processor"},
+                {"source": "dynamic_processor", "target": "adaptive_router"},
+                {"source": "adaptive_router", "target": "graph_modifier"},
+                {"source": "graph_modifier", "target": "END"}
+            ],
+            "modification_history": [],
+            "graph_metadata": {"start_time": time.time()},
+            "adaptation_triggers": [],
+            "performance_metrics": {}
+        }
+        
+        config = {"configurable": {"thread_id": "dynamic-modification-demo"}}
+        
+        print("🚀 Running initial graph...")
+        
+        # IMPORTANT: Use viz_app, not dynamic_graph
+        result1 = viz_app.invoke(initial_state, config=config)
+        
+        print(f"\n📊 Initial execution completed:")
+        print(f"- Active nodes: {result1['active_nodes']}")
+        print(f"- Modification history: {len(result1['modification_history'])} modifications")
+        print(f"- Adaptation triggers: {result1['adaptation_triggers']}")
+        
+        # Demonstrate adaptive evolution
+        print("\n--- ADAPTIVE EVOLUTION DEMONSTRATION ---")
+        
+        # Start with basic state for evolution
+        evolution_state = {
+            "messages": [HumanMessage(content="Start adaptive evolution")],
+            "current_graph": {"version": "1.0", "nodes": 3, "edges": 3},
+            "active_nodes": ["dynamic_processor", "adaptive_router", "graph_modifier"],
+            "active_edges": [
+                {"source": "START", "target": "dynamic_processor"},
+                {"source": "dynamic_processor", "target": "adaptive_router"},
+                {"source": "adaptive_router", "target": "graph_modifier"},
+                {"source": "graph_modifier", "target": "END"}
+            ],
+            "modification_history": [],
+            "graph_metadata": {"start_time": time.time()},
+            "adaptation_triggers": [],
+            "performance_metrics": {}
+        }
+        
+        evolution_config = {"configurable": {"thread_id": "adaptive-evolution-demo"}}
+        
+        # Run multiple iterations to show evolution
+        for iteration in range(3):
+            print(f"\n--- Evolution Iteration {iteration + 1} ---")
+            
+            # Simulate changing conditions
+            if iteration == 1:
+                # Simulate high memory usage
+                evolution_state["performance_metrics"] = {"memory_usage": 0.85}
+            elif iteration == 2:
+                # Simulate need for enrichment
+                evolution_state["adaptation_triggers"] = ["add_enricher_node"]
+            
+            print(f"Graph version: {evolution_state['current_graph']['version']}")
+            print(f"Active nodes: {evolution_state['active_nodes']}")
+            print(f"New modifications: {len(evolution_state['modification_history'])}")
+            
+            # IMPORTANT: Use viz_app, not dynamic_graph
+            evolution_result = viz_app.invoke(evolution_state, config=evolution_config)
+            
+            print(f"Evolution {iteration + 1} completed")
+            
+            # Update state for next iteration
+            evolution_state = evolution_result
+        
+        print(f"\n🎉 Evolution completed!")
+        print(f"Final graph version: {evolution_state['current_graph']['version']}")
+        print(f"Final active nodes: {evolution_state['active_nodes']}")
+        print(f"Total modifications: {len(evolution_state['modification_history'])}")
+        
+        # Demonstrate runtime reconfiguration
+        print("\n--- RUNTIME RECONFIGURATION DEMONSTRATION ---")
+        
+        reconfig_state = {
+            "messages": [HumanMessage(content="Start runtime reconfiguration")],
+            "current_graph": {"version": "1.0", "nodes": 3, "edges": 3},
+            "active_nodes": ["dynamic_processor", "adaptive_router", "graph_modifier"],
+            "active_edges": [
+                {"source": "START", "target": "dynamic_processor"},
+                {"source": "dynamic_processor", "target": "adaptive_router"},
+                {"source": "adaptive_router", "target": "graph_modifier"},
+                {"source": "graph_modifier", "target": "END"}
+            ],
+            "modification_history": [],
+            "graph_metadata": {"start_time": time.time()},
+            "adaptation_triggers": [],
+            "performance_metrics": {}
+        }
+        
+        reconfig_config = {"configurable": {"thread_id": "runtime-reconfig-demo"}}
+        
+        print("🚀 Initial graph execution...")
+        
+        # IMPORTANT: Use viz_app, not dynamic_graph
+        reconfig_result = viz_app.invoke(reconfig_state, config=reconfig_config)
+        
+        print(f"Initial result: {len(reconfig_result['active_nodes'])} nodes")
+        
+        # Simulate runtime condition change
+        print("\n🔄 Runtime condition detected: High memory usage")
+        
+        # Create new modification
+        memory_optimization_mod = GraphModification(
+            modification_id=str(uuid.uuid4()),
+            modification_type=ModificationType.ADD_NODE,
+            target_node="performance_monitor",
+            node_function=performance_monitor,
+            modification_data={"node_type": NodeType.AGGREGATOR},
+            timestamp=time.time(),
+            reason="Runtime optimization: memory usage too high"
+        )
+        
+        reconfig_result["modification_history"].append(memory_optimization_mod)
+        
+        # Reconfigure graph
+        print("\n🔧 Reconfiguring graph at runtime...")
+        
+        reconfigured_graph, new_active_nodes = create_modified_graph(reconfig_result["modification_history"])
+        
+        # Update state
+        reconfig_result["active_nodes"] = new_active_nodes
+        reconfig_result["current_graph"]["version"] = "1.1"
+        reconfig_result["current_graph"]["nodes"] = len(new_active_nodes)
+        
+        print(f"✅ Graph reconfigured: {len(new_active_nodes)} active nodes")
+        
+        # Run reconfigured graph
+        print("\n🚀 Running reconfigured graph...")
+        
+        # IMPORTANT: Use viz_app, not reconfigured_graph
+        final_reconfig_result = viz_app.invoke(reconfig_result, config=reconfig_config)
+        
+        print(f"✅ Reconfigured execution completed")
+        print(f"Final nodes: {final_reconfig_result['active_nodes']}")
+        print(f"Performance metrics: {final_reconfig_result['performance_metrics']}")
     
     print("\n" + "="*80)
-    print("ALL DEMONSTRATIONS COMPLETED")
+    print("ALL DEMONSTRATIONS COMPLETED - Visualization server closed")
     print("="*80)
     
     # Final summary

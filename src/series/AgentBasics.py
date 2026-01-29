@@ -86,14 +86,23 @@ workflow.add_edge("tools", "call_llm")
 app = workflow.compile()
 display(Image(app.get_graph().draw_mermaid_png()))
 
-messages = [
-  HumanMessage(content="What is the weather in India today?")
-]
+print("\n🚀 Running Agent Basics with visualization...")
 
-result = app.invoke({"messages": messages})
-print([msg.pretty_print() for msg in result["messages"]])
+# Use the context manager to run with visualization
+with visualize(app) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    messages = [
+      HumanMessage(content="What is the weather in India today?")
+    ]
+    
+    # IMPORTANT: Use viz_app, not app
+    result = viz_app.invoke({"messages": messages})
+    print([msg.pretty_print() for msg in result["messages"]])
+    
+    # IMPORTANT: Use viz_app, not app
+    viz_app.invoke({"messages": [
+      HumanMessage("What would you recommend in there then?")
+    ]})
 
-app.invoke({"messages": [
-  HumanMessage("What would you recommend in there then?")
-]})
-
+print("\n✅ Agent Basics demonstration completed - Visualization server closed")

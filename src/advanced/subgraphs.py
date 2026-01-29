@@ -20,6 +20,7 @@ from langgraph.graph.message import add_messages
 from IPython.display import Image, display
 from pydantic import BaseModel, Field
 import time
+from langgraph_viz import visualize
 
 # Initialize LLM
 llm = ChatOllama(model="gpt-oss:120b-cloud")
@@ -774,21 +775,29 @@ if __name__ == "__main__":
         }
     }
     
-    print("\n🚀 Starting main workflow with subgraph orchestration...")
+    print("\n🚀 Starting main workflow with subgraph orchestration and visualization...")
     
-    # Run the workflow
-    result = main_workflow_graph.invoke(initial_state)
+    # Use the context manager to run with visualization
+    with visualize(main_workflow_graph) as viz_app:
+        print("Running with visualization - Browser will open at http://localhost:8765")
+        
+        # IMPORTANT: Use viz_app, not main_workflow_graph
+        result = viz_app.invoke(initial_state)
+        
+        print("\n" + "="*80)
+        print("MAIN WORKFLOW COMPLETED")
+        print("="*80)
+        
+        # Display final messages
+        for message in result["messages"]:
+            if isinstance(message, AIMessage):
+                print(f"\n{message.content}")
+        
+        print(f"\nFinal Output Summary:")
+        print(f"- Subgraphs Executed: {len(result['subgraph_results'])}")
+        print(f"- Final Report Sections: {len(result['final_output']['report']['report_sections'])}")
+        print(f"- Workflow Metadata: {result['workflow_metadata']}")
     
     print("\n" + "="*80)
-    print("MAIN WORKFLOW COMPLETED")
+    print("DEMONSTRATION COMPLETED - Visualization server closed")
     print("="*80)
-    
-    # Display final messages
-    for message in result["messages"]:
-        if isinstance(message, AIMessage):
-            print(f"\n{message.content}")
-    
-    print(f"\nFinal Output Summary:")
-    print(f"- Subgraphs Executed: {len(result['subgraph_results'])}")
-    print(f"- Final Report Sections: {len(result['final_output']['report']['report_sections'])}")
-    print(f"- Workflow Metadata: {result['workflow_metadata']}")

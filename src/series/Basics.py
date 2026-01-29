@@ -35,13 +35,19 @@ graph.set_entry_point("branch_a")
 
 compiled_graph = graph.compile()
 
-# with visualize(compiled_graph) as viz_app:
-#   result = viz_app.invoke({"name": "John", "age": 30})
-
 display(Image(compiled_graph.get_graph().draw_mermaid_png()))
 
-result = compiled_graph.invoke({"name": "John", "age": 25})
-print(result)
+print("\n🚀 Running Basics example with visualization...")
+
+# Use the context manager to run with visualization
+with visualize(compiled_graph) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    # IMPORTANT: Use viz_app, not compiled_graph
+    result = viz_app.invoke({"name": "John", "age": 25})
+    print(result)
+
+print("\n✅ Basics demonstration completed - Visualization server closed")
 
 ## Reducer
 

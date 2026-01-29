@@ -27,5 +27,14 @@ compiled_graph = graph.compile()
 
 display(Image(compiled_graph.get_graph().draw_mermaid_png()))
 
-result = compiled_graph.invoke(InputState(string_value="test", int_value=1))
-print(result)
+print("\n🚀 Running Basics with Reducer Pydantic example with visualization...")
+
+# Use the context manager to run with visualization
+with visualize(compiled_graph) as viz_app:
+    print("Running with visualization - Browser will open at http://localhost:8765")
+    
+    # IMPORTANT: Use viz_app, not compiled_graph
+    result = viz_app.invoke(InputState(string_value="test", int_value=1))
+    print(result)
+
+print("\n✅ Basics with Reducer Pydantic demonstration completed - Visualization server closed")
